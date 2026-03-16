@@ -443,7 +443,6 @@
       remaining--;
       activeTimers[id] = remaining;
       timeEl.textContent = formatTime(remaining);
-      sortTimers();
       if (remaining <= 0) {
         clearInterval(interval);
         delete activeTimers[id];
