@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alan's Timers! ⭐🤖</title>
+<title>Alan's Timers! ⭐🧹</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -241,16 +241,16 @@
   .timer-card.mario .ctrl-btn { background: #ffd200; color: #333; }
   .timer-card.mario .ctrl-btn:hover { background: #ffe44d; }
 
-  /* Robot theme */
-  .timer-card.robot {
-    background: linear-gradient(135deg, #1565c0, #0d47a1);
-    border: 3px solid #80deea;
+  /* Roomba theme */
+  .timer-card.roomba {
+    background: linear-gradient(135deg, #37474f, #263238);
+    border: 3px solid #69f0ae;
   }
-  .timer-card.robot .timer-icon { color: #80deea; }
-  .timer-card.robot .timer-time { color: #e0f7fa; text-shadow: 0 0 10px rgba(128,222,234,0.5); }
-  .timer-card.robot .timer-label { color: #80deea; }
-  .timer-card.robot .ctrl-btn { background: #80deea; color: #0d47a1; }
-  .timer-card.robot .ctrl-btn:hover { background: #b2ebf2; }
+  .timer-card.roomba .timer-icon { color: #69f0ae; }
+  .timer-card.roomba .timer-time { color: #e0ffe8; text-shadow: 0 0 10px rgba(105,240,174,0.5); }
+  .timer-card.roomba .timer-label { color: #69f0ae; }
+  .timer-card.roomba .ctrl-btn { background: #69f0ae; color: #263238; }
+  .timer-card.roomba .ctrl-btn:hover { background: #b9fbd5; }
 
   .timer-icon { font-size: 2.5rem; margin-bottom: 8px; display: block; }
   .timer-time {
@@ -313,7 +313,7 @@
 </head>
 <body>
 
-<h1>⭐ Alan's Timers 🤖</h1>
+<h1>⭐ Alan's Timers 🧹</h1>
 <button id="add-btn">＋ Add Timer</button>
 <div id="timers-grid"></div>
 
@@ -325,7 +325,7 @@
       <label>Choose Theme</label>
       <div class="theme-btns">
         <button class="theme-btn" data-theme="mario">⭐ Mario</button>
-        <button class="theme-btn" data-theme="robot">🤖 Robot</button>
+        <button class="theme-btn" data-theme="roomba">🧹 Roomba</button>
       </div>
     </div>
     <div class="modal-section">
@@ -371,20 +371,32 @@
     });
   }
 
-  function playRobotSound() {
-    const notes = [220, 180, 260, 150]; // robotic descending/blipping tones
-    notes.forEach((freq, i) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.type = 'sawtooth';
-      osc.frequency.value = freq;
-      const t = audioCtx.currentTime + i * 0.15;
-      gain.gain.setValueAtTime(0.25, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-      osc.start(t);
-      osc.stop(t + 0.2);
+  function playRoombaSound() {
+    // Roomba done: a satisfied little "whirr down" + two cheerful beeps
+    const ctx = audioCtx;
+    const t0 = ctx.currentTime;
+
+    // Whirr down: sweeping tone from 400 → 100 Hz
+    const whirr = ctx.createOscillator();
+    const whirrGain = ctx.createGain();
+    whirr.connect(whirrGain); whirrGain.connect(ctx.destination);
+    whirr.type = 'sawtooth';
+    whirr.frequency.setValueAtTime(400, t0);
+    whirr.frequency.exponentialRampToValueAtTime(100, t0 + 0.5);
+    whirrGain.gain.setValueAtTime(0.2, t0);
+    whirrGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.5);
+    whirr.start(t0); whirr.stop(t0 + 0.5);
+
+    // Two cheerful beeps
+    [0.55, 0.75].forEach(offset => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.25, t0 + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + offset + 0.12);
+      osc.start(t0 + offset); osc.stop(t0 + offset + 0.15);
     });
   }
 
@@ -412,8 +424,8 @@
   function createTimer(theme, seconds) {
     timerCount++;
     const id = `timer-${timerCount}`;
-    const icon = theme === 'mario' ? '⭐' : '🤖';
-    const label = theme === 'mario' ? 'Mario Timer' : 'Robot Timer';
+    const icon = theme === 'mario' ? '⭐' : '🧹';
+    const label = theme === 'mario' ? 'Mario Timer' : 'Roomba Timer';
 
     const card = document.createElement('div');
     card.className = `timer-card ${theme}`;
@@ -450,7 +462,7 @@
         pauseBtn.style.display = 'none';
         // Play sound
         if (theme === 'mario') playMarioSound();
-        else playRobotSound();
+        else playRoombaSound();
         // Flash then remove
         card.classList.add('flashing');
         setTimeout(() => {
