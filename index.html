@@ -73,13 +73,13 @@
   .modal-section { margin-bottom: 20px; }
   .modal-section label { display: block; margin-bottom: 8px; font-weight: bold; color: #aac4ff; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
 
-  .theme-btns, .time-btns {
+  .theme-btns {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
   }
 
-  .theme-btn, .time-btn {
+  .theme-btn {
     flex: 1;
     min-width: 80px;
     padding: 12px 8px;
@@ -92,11 +92,99 @@
     background: #2a2a4a;
     color: #fff;
   }
-  .theme-btn:hover, .time-btn:hover { background: #3a3a6a; }
-  .theme-btn.selected, .time-btn.selected {
+  .theme-btn:hover { background: #3a3a6a; }
+  .theme-btn.selected {
     border-color: #ffd200;
     background: #3a3a6a;
     box-shadow: 0 0 12px rgba(255,210,0,0.4);
+  }
+
+  /* Wheel Picker */
+  .wheel-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .wheel-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .wheel-label {
+    font-size: 0.75rem;
+    color: #aac4ff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: bold;
+  }
+  .wheel-sep {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #fff;
+    margin-top: 20px;
+  }
+  .wheel {
+    width: 90px;
+    height: 160px;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #12122a;
+    border: 2px solid #3a3a6a;
+    position: relative;
+    cursor: ns-resize;
+    user-select: none;
+  }
+  .wheel::before, .wheel::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 48px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .wheel::before {
+    top: 0;
+    background: linear-gradient(to bottom, #12122a, transparent);
+  }
+  .wheel::after {
+    bottom: 0;
+    background: linear-gradient(to top, #12122a, transparent);
+  }
+  .wheel-selector {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 4px; right: 4px;
+    height: 44px;
+    border-radius: 8px;
+    background: rgba(255,210,0,0.15);
+    border: 2px solid rgba(255,210,0,0.5);
+    z-index: 1;
+    pointer-events: none;
+  }
+  .wheel-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform;
+  }
+  .wheel-item {
+    height: 44px;
+    line-height: 44px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #888;
+    text-align: center;
+    width: 100%;
+    transition: color 0.1s, font-size 0.1s;
+    flex-shrink: 0;
+  }
+  .wheel-item.active {
+    color: #fff;
+    font-size: 1.9rem;
   }
 
   #modal-start {
@@ -242,15 +330,20 @@
     </div>
     <div class="modal-section">
       <label>Choose Time</label>
-      <div class="time-btns">
-        <button class="time-btn" data-seconds="10">10s</button>
-        <button class="time-btn" data-seconds="15">15s</button>
-        <button class="time-btn" data-seconds="30">30s</button>
-        <button class="time-btn" data-seconds="60">1 min</button>
-        <button class="time-btn" data-seconds="120">2 min</button>
-        <button class="time-btn" data-seconds="180">3 min</button>
-        <button class="time-btn" data-seconds="300">5 min</button>
-        <button class="time-btn" data-seconds="600">10 min</button>
+      <div class="wheel-container">
+        <div class="wheel-col">
+          <div class="wheel-label">Minutes</div>
+          <div class="wheel" id="wheel-minutes">
+            <div class="wheel-inner" id="wheel-minutes-inner"></div>
+          </div>
+        </div>
+        <div class="wheel-sep">:</div>
+        <div class="wheel-col">
+          <div class="wheel-label">Seconds</div>
+          <div class="wheel" id="wheel-seconds">
+            <div class="wheel-inner" id="wheel-seconds-inner"></div>
+          </div>
+        </div>
       </div>
     </div>
     <button id="modal-start" disabled>▶ Start Timer!</button>
@@ -381,20 +474,88 @@
     });
   }
 
+  // Wheel Picker
+  function buildWheel(containerId, innerId, count, pad) {
+    const inner = document.getElementById(innerId);
+    const container = document.getElementById(containerId);
+
+    // Add selector highlight
+    const sel = document.createElement('div');
+    sel.className = 'wheel-selector';
+    container.appendChild(sel);
+
+    const items = [];
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.className = 'wheel-item';
+      el.textContent = pad ? String(i).padStart(2, '0') : String(i);
+      inner.appendChild(el);
+      items.push(el);
+    }
+
+    const itemH = 44;
+    const visibleCenter = 2; // 0-indexed center item in 5-visible window (160px / 44px ≈ 3.6, center = index 1)
+    let currentIndex = 0;
+
+    function scrollTo(idx, animate = true) {
+      idx = Math.max(0, Math.min(count - 1, idx));
+      currentIndex = idx;
+      const offset = (container.clientHeight / 2) - (itemH / 2) - idx * itemH;
+      if (!animate) inner.style.transition = 'none';
+      inner.style.transform = `translateY(${offset}px)`;
+      if (!animate) requestAnimationFrame(() => { inner.style.transition = ''; });
+      items.forEach((el, i) => el.classList.toggle('active', i === idx));
+    }
+
+    // Init
+    requestAnimationFrame(() => scrollTo(0, false));
+
+    // Touch / mouse drag
+    let startY = 0, startIdx = 0, isDragging = false;
+
+    function onStart(y) {
+      isDragging = true;
+      startY = y;
+      startIdx = currentIndex;
+      inner.style.transition = 'none';
+    }
+    function onMove(y) {
+      if (!isDragging) return;
+      const delta = Math.round((startY - y) / itemH);
+      scrollTo(startIdx + delta, false);
+    }
+    function onEnd() { isDragging = false; inner.style.transition = ''; }
+
+    container.addEventListener('mousedown', e => onStart(e.clientY));
+    window.addEventListener('mousemove', e => { if (isDragging) onMove(e.clientY); });
+    window.addEventListener('mouseup', onEnd);
+
+    container.addEventListener('touchstart', e => onStart(e.touches[0].clientY), { passive: true });
+    container.addEventListener('touchmove', e => { onMove(e.touches[0].clientY); }, { passive: true });
+    container.addEventListener('touchend', onEnd);
+
+    container.addEventListener('wheel', e => {
+      e.preventDefault();
+      scrollTo(currentIndex + (e.deltaY > 0 ? 1 : -1));
+    }, { passive: false });
+
+    return { getValue: () => currentIndex, scrollTo };
+  }
+
+  const minuteWheel = buildWheel('wheel-minutes', 'wheel-minutes-inner', 60, true);
+  const secondWheel = buildWheel('wheel-seconds', 'wheel-seconds-inner', 60, true);
+
   // Modal logic
   let selectedTheme = null;
-  let selectedSeconds = null;
 
   const overlay = document.getElementById('modal-overlay');
   const startBtn = document.getElementById('modal-start');
 
   document.getElementById('add-btn').addEventListener('click', () => {
     selectedTheme = null;
-    selectedSeconds = null;
-    document.querySelectorAll('.theme-btn, .time-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('selected'));
     startBtn.disabled = true;
     overlay.classList.add('open');
-    // Resume AudioContext on user gesture
     if (audioCtx.state === 'suspended') audioCtx.resume();
   });
 
@@ -415,22 +576,27 @@
     });
   });
 
-  document.querySelectorAll('.time-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      selectedSeconds = parseInt(btn.dataset.seconds);
-      checkReady();
-    });
-  });
-
   function checkReady() {
-    startBtn.disabled = !(selectedTheme && selectedSeconds);
+    const mins = minuteWheel.getValue();
+    const secs = secondWheel.getValue();
+    startBtn.disabled = !(selectedTheme && (mins > 0 || secs > 0));
   }
 
+  // Re-check readiness when wheels are used
+  ['wheel-minutes', 'wheel-seconds'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('mouseup', checkReady);
+    el.addEventListener('touchend', checkReady);
+    el.addEventListener('wheel', () => setTimeout(checkReady, 100));
+  });
+
   startBtn.addEventListener('click', () => {
+    const mins = minuteWheel.getValue();
+    const secs = secondWheel.getValue();
+    const total = mins * 60 + secs;
+    if (total <= 0) return;
     overlay.classList.remove('open');
-    createTimer(selectedTheme, selectedSeconds);
+    createTimer(selectedTheme, total);
   });
 </script>
 </body>
