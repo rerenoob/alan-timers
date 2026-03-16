@@ -396,6 +396,18 @@
   }
 
   let timerCount = 0;
+  const activeTimers = {}; // id -> { remaining }
+
+  function sortTimers() {
+    const grid = document.getElementById('timers-grid');
+    const cards = Array.from(grid.children);
+    cards.sort((a, b) => {
+      const ra = activeTimers[a.id] !== undefined ? activeTimers[a.id] : Infinity;
+      const rb = activeTimers[b.id] !== undefined ? activeTimers[b.id] : Infinity;
+      return ra - rb;
+    });
+    cards.forEach(card => grid.appendChild(card));
+  }
 
   function createTimer(theme, seconds) {
     timerCount++;
@@ -419,6 +431,7 @@
     document.getElementById('timers-grid').appendChild(card);
 
     let remaining = seconds;
+    activeTimers[id] = remaining;
     let running = true;
     let interval = null;
 
@@ -428,9 +441,12 @@
 
     function tick() {
       remaining--;
+      activeTimers[id] = remaining;
       timeEl.textContent = formatTime(remaining);
+      sortTimers();
       if (remaining <= 0) {
         clearInterval(interval);
+        delete activeTimers[id];
         timeEl.innerHTML = `<span class="done-label">DONE!</span>`;
         pauseBtn.style.display = 'none';
         // Play sound
@@ -443,7 +459,7 @@
           card.style.opacity = '0';
           card.style.transform = 'scale(0.5)';
           setTimeout(() => card.remove(), 400);
-        }, 1800); // 4 flashes × 0.4s = 1.6s + buffer
+        }, 1800);
       }
     }
 
@@ -467,11 +483,14 @@
 
     removeBtn.addEventListener('click', () => {
       clearInterval(interval);
+      delete activeTimers[id];
       card.style.transition = 'opacity 0.2s, transform 0.2s';
       card.style.opacity = '0';
       card.style.transform = 'scale(0.5)';
       setTimeout(() => card.remove(), 200);
     });
+
+    sortTimers();
   }
 
   // Wheel Picker
