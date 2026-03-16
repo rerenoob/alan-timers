@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alan's Timers! ⭐🤖</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 20px;
+  }
+
+  h1 {
+    text-align: center;
+    color: #fff;
+    font-size: 2rem;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px rgba(255,220,0,0.6);
+    letter-spacing: 2px;
+  }
+
+  #add-btn {
+    display: block;
+    margin: 0 auto 30px;
+    padding: 16px 40px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+    color: #333;
+    box-shadow: 0 4px 20px rgba(255,210,0,0.4);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  #add-btn:hover { transform: scale(1.05); box-shadow: 0 6px 25px rgba(255,210,0,0.6); }
+  #add-btn:active { transform: scale(0.97); }
+
+  #timers-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+  }
+
+  /* Modal */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-overlay.open { display: flex; }
+
+  #modal {
+    background: #1e1e3a;
+    border-radius: 20px;
+    padding: 30px;
+    width: 340px;
+    max-width: 95vw;
+    color: #fff;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  #modal h2 { text-align: center; margin-bottom: 20px; font-size: 1.4rem; }
+
+  .modal-section { margin-bottom: 20px; }
+  .modal-section label { display: block; margin-bottom: 8px; font-weight: bold; color: #aac4ff; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+
+  .theme-btns, .time-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .theme-btn, .time-btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 12px 8px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: all 0.15s;
+    background: #2a2a4a;
+    color: #fff;
+  }
+  .theme-btn:hover, .time-btn:hover { background: #3a3a6a; }
+  .theme-btn.selected, .time-btn.selected {
+    border-color: #ffd200;
+    background: #3a3a6a;
+    box-shadow: 0 0 12px rgba(255,210,0,0.4);
+  }
+
+  #modal-start {
+    width: 100%;
+    padding: 14px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+    color: #fff;
+    margin-top: 5px;
+    transition: opacity 0.2s;
+  }
+  #modal-start:disabled { opacity: 0.4; cursor: not-allowed; }
+  #modal-cancel {
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: transparent;
+    color: #888;
+    margin-top: 8px;
+  }
+  #modal-cancel:hover { color: #fff; }
+
+  /* Timer Cards */
+  .timer-card {
+    width: 220px;
+    border-radius: 20px;
+    padding: 24px 20px 20px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* Mario theme */
+  .timer-card.mario {
+    background: linear-gradient(135deg, #e52d27, #b31217);
+    border: 3px solid #ffd200;
+  }
+  .timer-card.mario .timer-icon { color: #ffd200; }
+  .timer-card.mario .timer-time { color: #fff; text-shadow: 2px 2px 0 rgba(0,0,0,0.3); }
+  .timer-card.mario .timer-label { color: #ffeb80; }
+  .timer-card.mario .ctrl-btn { background: #ffd200; color: #333; }
+  .timer-card.mario .ctrl-btn:hover { background: #ffe44d; }
+
+  /* Robot theme */
+  .timer-card.robot {
+    background: linear-gradient(135deg, #1565c0, #0d47a1);
+    border: 3px solid #80deea;
+  }
+  .timer-card.robot .timer-icon { color: #80deea; }
+  .timer-card.robot .timer-time { color: #e0f7fa; text-shadow: 0 0 10px rgba(128,222,234,0.5); }
+  .timer-card.robot .timer-label { color: #80deea; }
+  .timer-card.robot .ctrl-btn { background: #80deea; color: #0d47a1; }
+  .timer-card.robot .ctrl-btn:hover { background: #b2ebf2; }
+
+  .timer-icon { font-size: 2.5rem; margin-bottom: 8px; display: block; }
+  .timer-time {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer-label { font-size: 0.75rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; opacity: 0.85; }
+
+  .card-controls { display: flex; gap: 8px; justify-content: center; }
+  .ctrl-btn {
+    border: none;
+    border-radius: 50px;
+    padding: 8px 18px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .ctrl-btn:active { transform: scale(0.95); }
+  .remove-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: rgba(0,0,0,0.3);
+    border: none;
+    color: #fff;
+    border-radius: 50%;
+    width: 26px; height: 26px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    line-height: 26px;
+    text-align: center;
+  }
+  .remove-btn:hover { background: rgba(255,50,50,0.6); }
+
+  /* Flash animation */
+  @keyframes flash {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    25% { opacity: 0.2; transform: scale(1.08); }
+    75% { opacity: 0.2; transform: scale(1.08); }
+  }
+  .timer-card.flashing {
+    animation: flash 0.4s ease-in-out 4;
+  }
+
+  .done-label {
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 3px;
+    animation: pulse 0.5s infinite alternate;
+  }
+  @keyframes pulse {
+    from { opacity: 1; }
+    to { opacity: 0.5; }
+  }
+</style>
+</head>
+<body>
+
+<h1>⭐ Alan's Timers 🤖</h1>
+<button id="add-btn">＋ Add Timer</button>
+<div id="timers-grid"></div>
+
+<!-- Modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>🎮 New Timer</h2>
+    <div class="modal-section">
+      <label>Choose Theme</label>
+      <div class="theme-btns">
+        <button class="theme-btn" data-theme="mario">⭐ Mario</button>
+        <button class="theme-btn" data-theme="robot">🤖 Robot</button>
+      </div>
+    </div>
+    <div class="modal-section">
+      <label>Choose Time</label>
+      <div class="time-btns">
+        <button class="time-btn" data-seconds="10">10s</button>
+        <button class="time-btn" data-seconds="15">15s</button>
+        <button class="time-btn" data-seconds="30">30s</button>
+        <button class="time-btn" data-seconds="60">1 min</button>
+        <button class="time-btn" data-seconds="120">2 min</button>
+        <button class="time-btn" data-seconds="180">3 min</button>
+        <button class="time-btn" data-seconds="300">5 min</button>
+        <button class="time-btn" data-seconds="600">10 min</button>
+      </div>
+    </div>
+    <button id="modal-start" disabled>▶ Start Timer!</button>
+    <button id="modal-cancel">Cancel</button>
+  </div>
+</div>
+
+<script>
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playMarioSound() {
+    const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6 — ascending coin jingle
+    notes.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      const t = audioCtx.currentTime + i * 0.12;
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      osc.start(t);
+      osc.stop(t + 0.15);
+    });
+  }
+
+  function playRobotSound() {
+    const notes = [220, 180, 260, 150]; // robotic descending/blipping tones
+    notes.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      const t = audioCtx.currentTime + i * 0.15;
+      gain.gain.setValueAtTime(0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+      osc.start(t);
+      osc.stop(t + 0.2);
+    });
+  }
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    if (m > 0) return `${m}:${sec.toString().padStart(2, '0')}`;
+    return `${sec}s`;
+  }
+
+  let timerCount = 0;
+
+  function createTimer(theme, seconds) {
+    timerCount++;
+    const id = `timer-${timerCount}`;
+    const icon = theme === 'mario' ? '⭐' : '🤖';
+    const label = theme === 'mario' ? 'Mario Timer' : 'Robot Timer';
+
+    const card = document.createElement('div');
+    card.className = `timer-card ${theme}`;
+    card.id = id;
+    card.innerHTML = `
+      <button class="remove-btn" title="Remove">✕</button>
+      <span class="timer-icon">${icon}</span>
+      <div class="timer-time">${formatTime(seconds)}</div>
+      <div class="timer-label">${label}</div>
+      <div class="card-controls">
+        <button class="ctrl-btn pause-btn">⏸ Pause</button>
+      </div>
+    `;
+
+    document.getElementById('timers-grid').appendChild(card);
+
+    let remaining = seconds;
+    let running = true;
+    let interval = null;
+
+    const timeEl = card.querySelector('.timer-time');
+    const pauseBtn = card.querySelector('.pause-btn');
+    const removeBtn = card.querySelector('.remove-btn');
+
+    function tick() {
+      remaining--;
+      timeEl.textContent = formatTime(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        timeEl.innerHTML = `<span class="done-label">DONE!</span>`;
+        pauseBtn.style.display = 'none';
+        // Play sound
+        if (theme === 'mario') playMarioSound();
+        else playRobotSound();
+        // Flash then remove
+        card.classList.add('flashing');
+        setTimeout(() => {
+          card.style.transition = 'opacity 0.4s, transform 0.4s';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.5)';
+          setTimeout(() => card.remove(), 400);
+        }, 1800); // 4 flashes × 0.4s = 1.6s + buffer
+      }
+    }
+
+    function startInterval() {
+      interval = setInterval(tick, 1000);
+    }
+
+    startInterval();
+
+    pauseBtn.addEventListener('click', () => {
+      if (running) {
+        clearInterval(interval);
+        pauseBtn.textContent = '▶ Resume';
+        running = false;
+      } else {
+        startInterval();
+        pauseBtn.textContent = '⏸ Pause';
+        running = true;
+      }
+    });
+
+    removeBtn.addEventListener('click', () => {
+      clearInterval(interval);
+      card.style.transition = 'opacity 0.2s, transform 0.2s';
+      card.style.opacity = '0';
+      card.style.transform = 'scale(0.5)';
+      setTimeout(() => card.remove(), 200);
+    });
+  }
+
+  // Modal logic
+  let selectedTheme = null;
+  let selectedSeconds = null;
+
+  const overlay = document.getElementById('modal-overlay');
+  const startBtn = document.getElementById('modal-start');
+
+  document.getElementById('add-btn').addEventListener('click', () => {
+    selectedTheme = null;
+    selectedSeconds = null;
+    document.querySelectorAll('.theme-btn, .time-btn').forEach(b => b.classList.remove('selected'));
+    startBtn.disabled = true;
+    overlay.classList.add('open');
+    // Resume AudioContext on user gesture
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  });
+
+  document.getElementById('modal-cancel').addEventListener('click', () => {
+    overlay.classList.remove('open');
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedTheme = btn.dataset.theme;
+      checkReady();
+    });
+  });
+
+  document.querySelectorAll('.time-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedSeconds = parseInt(btn.dataset.seconds);
+      checkReady();
+    });
+  });
+
+  function checkReady() {
+    startBtn.disabled = !(selectedTheme && selectedSeconds);
+  }
+
+  startBtn.addEventListener('click', () => {
+    overlay.classList.remove('open');
+    createTimer(selectedTheme, selectedSeconds);
+  });
+</script>
+</body>
+</html>
