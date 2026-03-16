@@ -252,7 +252,8 @@
   .timer-card.roomba .ctrl-btn { background: #69f0ae; color: #263238; }
   .timer-card.roomba .ctrl-btn:hover { background: #b9fbd5; }
 
-  .timer-icon { font-size: 2.5rem; margin-bottom: 8px; display: block; }
+  .timer-icon { font-size: 2.5rem; margin-bottom: 8px; display: block; line-height: 1; }
+  .timer-icon svg { display: inline-block; vertical-align: middle; }
   .timer-time {
     font-size: 3rem;
     font-weight: 900;
@@ -424,7 +425,27 @@
   function createTimer(theme, seconds) {
     timerCount++;
     const id = `timer-${timerCount}`;
-    const icon = theme === 'mario' ? '⭐' : '🧹';
+    const roombaIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" style="display:inline-block">
+      <!-- Body -->
+      <circle cx="32" cy="36" r="24" fill="#455a64"/>
+      <circle cx="32" cy="36" r="20" fill="#546e7a"/>
+      <!-- Top bump (sensor) -->
+      <ellipse cx="32" cy="14" rx="8" ry="5" fill="#455a64"/>
+      <ellipse cx="32" cy="13" rx="5" ry="3" fill="#69f0ae"/>
+      <!-- Eyes / sensors -->
+      <circle cx="24" cy="30" r="3.5" fill="#263238"/>
+      <circle cx="40" cy="30" r="3.5" fill="#263238"/>
+      <circle cx="25" cy="29" r="1.2" fill="#69f0ae"/>
+      <circle cx="41" cy="29" r="1.2" fill="#69f0ae"/>
+      <!-- Smile -->
+      <path d="M24 42 Q32 50 40 42" stroke="#69f0ae" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <!-- Brush roll indicator -->
+      <rect x="20" y="53" width="24" height="4" rx="2" fill="#37474f"/>
+      <rect x="23" y="53" width="3" height="4" rx="1" fill="#69f0ae"/>
+      <rect x="30" y="53" width="3" height="4" rx="1" fill="#69f0ae"/>
+      <rect x="37" y="53" width="3" height="4" rx="1" fill="#69f0ae"/>
+    </svg>`;
+    const icon = theme === 'mario' ? '⭐' : roombaIcon;
     const label = theme === 'mario' ? 'Mario Timer' : 'Roomba Timer';
 
     const card = document.createElement('div');
