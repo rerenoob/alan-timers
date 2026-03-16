@@ -549,31 +549,51 @@
   }
 
   function playRoombaSound() {
-    // Roomba done: a satisfied little "whirr down" + two cheerful beeps
     const ctx = audioCtx;
     const t0 = ctx.currentTime;
 
-    // Whirr down: sweeping tone from 400 → 100 Hz
-    const whirr = ctx.createOscillator();
-    const whirrGain = ctx.createGain();
-    whirr.connect(whirrGain); whirrGain.connect(ctx.destination);
-    whirr.type = 'sawtooth';
-    whirr.frequency.setValueAtTime(400, t0);
-    whirr.frequency.exponentialRampToValueAtTime(100, t0 + 0.5);
-    whirrGain.gain.setValueAtTime(0.2, t0);
-    whirrGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.5);
-    whirr.start(t0); whirr.stop(t0 + 0.5);
+    // ── Motor wind-down ────────────────────────────────────────
+    // Sawtooth sweep 600 → 60 Hz (vacuum motor slowing to a stop)
+    const motor = ctx.createOscillator();
+    const motorGain = ctx.createGain();
+    motor.connect(motorGain); motorGain.connect(ctx.destination);
+    motor.type = 'sawtooth';
+    motor.frequency.setValueAtTime(600, t0);
+    motor.frequency.exponentialRampToValueAtTime(60, t0 + 0.7);
+    motorGain.gain.setValueAtTime(0.18, t0);
+    motorGain.gain.linearRampToValueAtTime(0.08, t0 + 0.5);
+    motorGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.75);
+    motor.start(t0); motor.stop(t0 + 0.8);
 
-    // Two cheerful beeps
-    [0.55, 0.75].forEach(offset => {
+    // ── Brush roll click-click ─────────────────────────────────
+    // Short noise bursts simulating the brush slowing down
+    [0.2, 0.38, 0.52].forEach(offset => {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.04, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.4;
+      const src = ctx.createBufferSource();
+      const g = ctx.createGain();
+      src.buffer = buf;
+      src.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.12, t0 + offset);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + offset + 0.04);
+      src.start(t0 + offset);
+    });
+
+    // ── Roomba "done" chime: 3 clean sine tones ────────────────
+    // The real Roomba plays a rising 3-note melody when done
+    // Approx: D5 → F#5 → A5 (a D major chord ascending)
+    [[587, 0.85], [740, 1.0], [880, 1.15]].forEach(([freq, offset]) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
       osc.type = 'sine';
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.25, t0 + offset);
-      gain.gain.exponentialRampToValueAtTime(0.001, t0 + offset + 0.12);
-      osc.start(t0 + offset); osc.stop(t0 + offset + 0.15);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, t0 + offset);
+      gain.gain.linearRampToValueAtTime(0.3, t0 + offset + 0.02);
+      gain.gain.setValueAtTime(0.3, t0 + offset + 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + offset + 0.35);
+      osc.start(t0 + offset); osc.stop(t0 + offset + 0.4);
     });
   }
 
