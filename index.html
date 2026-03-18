@@ -210,6 +210,22 @@ h1 {
 }
 
 /* ── Wheel Picker ───────────────────────────────────────────── */
+.wheel-btn {
+  display: block;
+  width: 100%;
+  background: var(--btn-bg);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1.1rem;
+  padding: 6px 0;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity .15s, transform .1s;
+}
+.wheel-btn:hover  { opacity: 1; }
+.wheel-btn:active { transform: scale(0.93); }
+
 .wheel-container {
   display: flex;
   align-items: center;
@@ -589,18 +605,22 @@ h1 {
       <div class="wheel-container">
         <div class="wheel-col">
           <div class="wheel-lbl">Minutes</div>
+          <button class="wheel-btn" id="min-up">▲</button>
           <div class="wheel" id="wheel-min">
             <div class="wheel-sel"></div>
             <div class="wheel-inner" id="wheel-min-inner"></div>
           </div>
+          <button class="wheel-btn" id="min-down">▼</button>
         </div>
         <div class="wheel-sep">:</div>
         <div class="wheel-col">
           <div class="wheel-lbl">Seconds</div>
+          <button class="wheel-btn" id="sec-up">▲</button>
           <div class="wheel" id="wheel-sec">
             <div class="wheel-sel"></div>
             <div class="wheel-inner" id="wheel-sec-inner"></div>
           </div>
+          <button class="wheel-btn" id="sec-down">▼</button>
         </div>
       </div>
     </div>
@@ -805,11 +825,16 @@ function buildWheel(id, innerId, count, pad) {
 
   wrap.addEventListener('wheel', e => { e.preventDefault(); snap(cur + (e.deltaY > 0 ? 1 : -1)); }, { passive: false });
 
-  return { get: () => cur };
+  return { get: () => cur, snap };
 }
 
 const mWheel = buildWheel('wheel-min', 'wheel-min-inner', 60, true);
 const sWheel = buildWheel('wheel-sec', 'wheel-sec-inner', 60, true);
+
+document.getElementById('min-up').addEventListener('click',   () => mWheel.snap(mWheel.get() - 1));
+document.getElementById('min-down').addEventListener('click', () => mWheel.snap(mWheel.get() + 1));
+document.getElementById('sec-up').addEventListener('click',   () => sWheel.snap(sWheel.get() - 1));
+document.getElementById('sec-down').addEventListener('click', () => sWheel.snap(sWheel.get() + 1));
 
 /* ── Modal Logic ───────────────────────────────────────────── */
 const modalEl  = document.getElementById('modal-overlay');
