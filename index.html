@@ -129,24 +129,6 @@ h1 {
 #add-btn:hover  { transform: scale(1.04); box-shadow: 0 6px 28px var(--accent-glow); }
 #add-btn:active { transform: scale(0.97); }
 
-/* ── Reset All Button ───────────────────────────────────────── */
-#reset-all-btn {
-  display: none;
-  margin: 0 auto 20px;
-  padding: 9px 28px;
-  font-size: 0.95rem;
-  font-weight: bold;
-  border: 2px solid rgba(255, 80, 80, 0.45);
-  border-radius: 50px;
-  cursor: pointer;
-  background: rgba(220, 50, 50, 0.12);
-  color: rgba(255, 140, 140, 0.9);
-  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.1s;
-}
-#reset-all-btn:hover  { background: rgba(220, 50, 50, 0.32); color: #fff; border-color: rgba(255,80,80,0.8); }
-#reset-all-btn:active { transform: scale(0.96); }
-#reset-all-btn.visible { display: block; }
-
 /* ── Timers Grid ────────────────────────────────────────────── */
 #timers-grid {
   display: flex;
@@ -606,7 +588,6 @@ h1 {
 </div>
 
 <button id="add-btn">＋ New Timer</button>
-<button id="reset-all-btn">✕ Reset All</button>
 <div id="timers-grid"></div>
 
 <!-- ── New Timer Modal ──────────────────────────────────────── -->
@@ -888,13 +869,16 @@ startBtn.addEventListener('click', () => {
   showMath(selAct, theme, total);
 });
 
+/* ── Theme color maps for per-card isolation ───────────────── */
+const CARD_THEMES = {
+  mario:  { cardFrom: '#e52d27', cardTo: '#b31217', cardBorder: '#ffd200', cardSub: '#ffeb80',
+            btnBg: '#ffd200', btnTxt: '#333', btnHover: '#ffe44d', accent: '#ffd200', accentGlow: 'rgba(255,210,0,0.5)' },
+  roomba: { cardFrom: '#37474f', cardTo: '#263238', cardBorder: '#69f0ae', cardSub: '#69f0ae',
+            btnBg: '#69f0ae', btnTxt: '#1a3025', btnHover: '#9effc8', accent: '#69f0ae', accentGlow: 'rgba(105,240,174,0.4)' },
+};
+
 /* ── Timer Cards ───────────────────────────────────────────── */
 let cardCount = 0;
-const activeTimers = new Map(); // id -> cleanup fn
-
-function updateResetBtn() {
-  document.getElementById('reset-all-btn').classList.toggle('visible', activeTimers.size > 0);
-}
 
 function fmt(s) {
   const m = Math.floor(s / 60), r = s % 60;
@@ -911,6 +895,19 @@ function createTimer(act, cardTheme, total) {
   const card = document.createElement('div');
   card.className = 'timer-card';
   card.id = id;
+
+  // Lock this card's colors to its creation-time theme so theme switches
+  // on the body don't retroactively recolor existing cards.
+  const tc = CARD_THEMES[cardTheme] || CARD_THEMES.mario;
+  card.style.setProperty('--card-from',   tc.cardFrom);
+  card.style.setProperty('--card-to',     tc.cardTo);
+  card.style.setProperty('--card-border', tc.cardBorder);
+  card.style.setProperty('--card-sub',    tc.cardSub);
+  card.style.setProperty('--btn-bg',      tc.btnBg);
+  card.style.setProperty('--btn-txt',     tc.btnTxt);
+  card.style.setProperty('--btn-hover',   tc.btnHover);
+  card.style.setProperty('--accent',      tc.accent);
+  card.style.setProperty('--accent-glow', tc.accentGlow);
   card.innerHTML = `
     <button class="remove-btn" title="Remove">✕</button>
     <div class="timer-activity">${act.label}</div>
@@ -948,8 +945,6 @@ function createTimer(act, cardTheme, total) {
 
   function cleanup() {
     clearInterval(iv);
-    activeTimers.delete(id);
-    updateResetBtn();
     card.style.transition = 'opacity 0.2s, transform 0.2s';
     card.style.opacity    = '0';
     card.style.transform  = 'scale(0.4)';
@@ -983,8 +978,6 @@ function createTimer(act, cardTheme, total) {
 
     if (rem <= 0) {
       clearInterval(iv);
-      activeTimers.delete(id);
-      updateResetBtn();
       card.classList.add('done');
       timeEl.innerHTML = `<span class="done-text">DONE!</span>`;
       pauseEl.style.display = 'none';
@@ -1005,9 +998,6 @@ function createTimer(act, cardTheme, total) {
 
   function go() { iv = setInterval(tick, 1000); }
   go();
-
-  activeTimers.set(id, cleanup);
-  updateResetBtn();
 
   pauseEl.addEventListener('click', () => {
     if (running) { clearInterval(iv); pauseEl.textContent = '▶ Resume'; }
@@ -1078,11 +1068,6 @@ document.querySelectorAll('.num-btn').forEach(btn => {
     else                  { if (mathIn.length < 2) mathIn += v; }
     updateMathDisplay();
   });
-});
-
-/* ── Reset All ─────────────────────────────────────────────── */
-document.getElementById('reset-all-btn').addEventListener('click', () => {
-  [...activeTimers.values()].forEach(fn => fn());
 });
 
 // Keyboard support for math
