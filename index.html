@@ -114,7 +114,7 @@ h1 {
 /* ── Add Button ─────────────────────────────────────────────── */
 #add-btn {
   display: block;
-  margin: 0 auto 28px;
+  margin: 0 auto 12px;
   padding: 16px 48px;
   font-size: 1.4rem;
   font-weight: bold;
@@ -128,6 +128,24 @@ h1 {
 }
 #add-btn:hover  { transform: scale(1.04); box-shadow: 0 6px 28px var(--accent-glow); }
 #add-btn:active { transform: scale(0.97); }
+
+/* ── Reset All Button ───────────────────────────────────────── */
+#reset-all-btn {
+  display: none;
+  margin: 0 auto 20px;
+  padding: 9px 28px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  border: 2px solid rgba(255, 80, 80, 0.45);
+  border-radius: 50px;
+  cursor: pointer;
+  background: rgba(220, 50, 50, 0.12);
+  color: rgba(255, 140, 140, 0.9);
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.1s;
+}
+#reset-all-btn:hover  { background: rgba(220, 50, 50, 0.32); color: #fff; border-color: rgba(255,80,80,0.8); }
+#reset-all-btn:active { transform: scale(0.96); }
+#reset-all-btn.visible { display: block; }
 
 /* ── Timers Grid ────────────────────────────────────────────── */
 #timers-grid {
@@ -588,6 +606,7 @@ h1 {
 </div>
 
 <button id="add-btn">＋ New Timer</button>
+<button id="reset-all-btn">✕ Reset All</button>
 <div id="timers-grid"></div>
 
 <!-- ── New Timer Modal ──────────────────────────────────────── -->
@@ -871,6 +890,11 @@ startBtn.addEventListener('click', () => {
 
 /* ── Timer Cards ───────────────────────────────────────────── */
 let cardCount = 0;
+const activeTimers = new Map(); // id -> cleanup fn
+
+function updateResetBtn() {
+  document.getElementById('reset-all-btn').classList.toggle('visible', activeTimers.size > 0);
+}
 
 function fmt(s) {
   const m = Math.floor(s / 60), r = s % 60;
@@ -922,6 +946,16 @@ function createTimer(act, cardTheme, total) {
   let running = true;
   let iv      = null;
 
+  function cleanup() {
+    clearInterval(iv);
+    activeTimers.delete(id);
+    updateResetBtn();
+    card.style.transition = 'opacity 0.2s, transform 0.2s';
+    card.style.opacity    = '0';
+    card.style.transform  = 'scale(0.4)';
+    setTimeout(() => card.remove(), 200);
+  }
+
   function updateRing() {
     const pct = rem / total;
     fillEl.style.strokeDashoffset = (CIRC * (1 - pct)).toFixed(2);
@@ -949,6 +983,8 @@ function createTimer(act, cardTheme, total) {
 
     if (rem <= 0) {
       clearInterval(iv);
+      activeTimers.delete(id);
+      updateResetBtn();
       card.classList.add('done');
       timeEl.innerHTML = `<span class="done-text">DONE!</span>`;
       pauseEl.style.display = 'none';
@@ -970,19 +1006,16 @@ function createTimer(act, cardTheme, total) {
   function go() { iv = setInterval(tick, 1000); }
   go();
 
+  activeTimers.set(id, cleanup);
+  updateResetBtn();
+
   pauseEl.addEventListener('click', () => {
     if (running) { clearInterval(iv); pauseEl.textContent = '▶ Resume'; }
     else         { go();              pauseEl.textContent = '⏸ Pause'; }
     running = !running;
   });
 
-  card.querySelector('.remove-btn').addEventListener('click', () => {
-    clearInterval(iv);
-    card.style.transition = 'opacity 0.2s, transform 0.2s';
-    card.style.opacity    = '0';
-    card.style.transform  = 'scale(0.4)';
-    setTimeout(() => card.remove(), 200);
-  });
+  card.querySelector('.remove-btn').addEventListener('click', cleanup);
 }
 
 /* ── Math Challenge ────────────────────────────────────────── */
@@ -1045,6 +1078,11 @@ document.querySelectorAll('.num-btn').forEach(btn => {
     else                  { if (mathIn.length < 2) mathIn += v; }
     updateMathDisplay();
   });
+});
+
+/* ── Reset All ─────────────────────────────────────────────── */
+document.getElementById('reset-all-btn').addEventListener('click', () => {
+  [...activeTimers.values()].forEach(fn => fn());
 });
 
 // Keyboard support for math
